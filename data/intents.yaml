@@ -1,0 +1,7 @@
+intents:
+  - name: get_weather
+    dataset_file: 'get_weather.txt'
+  - name: greeting
+    dataset_file: 'greeting.txt'
+  - name: goodbye
+    dataset_file: 'goodbye.txt'
