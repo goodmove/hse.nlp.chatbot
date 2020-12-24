@@ -110,6 +110,7 @@ class GetWeatherSkillSlots:
             'moscow': Slot('moscow', 'Москва', { "мск", "москва" }),
         },
         'date': {
-            'today': Slot('today', 'сегодня', { "сегодня" })
+            'today': Slot('today', 'сегодня', { "сегодня" }),
+            'tomorrow': Slot('tomorrow', 'завтра', { "завтра" }),
         }
     }
