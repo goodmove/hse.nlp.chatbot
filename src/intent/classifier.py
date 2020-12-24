@@ -4,6 +4,17 @@ from sklearn.neighbors import KNeighborsClassifier
 from src.language_model import preprocess_input
 
 
+class IntentClassifier:
+
+    def __init__(self, path_to_model):
+        self.model = get_model(path_to_model)
+
+
+    def classify(self, text):
+        emb = preprocess_input(text)
+        return self.model.predict([emb])[0]
+
+
 def get_model(path_to_model):
     model = None
     with open(path_to_model, 'rb') as model_fd:
