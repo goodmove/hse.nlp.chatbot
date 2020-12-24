@@ -2,6 +2,7 @@ import pickle
 from sklearn.neighbors import KNeighborsClassifier
 
 from src.language_model import preprocess_input
+import numpy as np
 
 
 class IntentClassifier:
@@ -12,7 +13,15 @@ class IntentClassifier:
 
     def classify(self, text):
         emb = preprocess_input(text)
-        return self.model.predict([emb])[0]
+        predictions = self.model.predict_proba([emb])[0]
+        print(predictions)
+        max_index = np.argmax(predictions)
+        print(max_index)
+
+        if predictions[max_index] < 0.6:
+            return None
+        else:
+            return max_index
 
 
 def get_model(path_to_model):
