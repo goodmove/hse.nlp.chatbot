@@ -6,6 +6,13 @@ morph = pymorphy2.MorphAnalyzer()
 segmenter = Segmenter()
 
 
+def lemmatize(word: str):
+    res = morph.parse(word)
+    if len(res) > 0:
+        return res[0].normal_form
+    else:
+        return None
+
 def get_tokens(text: str):
     doc = Doc(text.lower())
     doc.segment(segmenter)

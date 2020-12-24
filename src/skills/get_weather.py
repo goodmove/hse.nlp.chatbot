@@ -1,5 +1,23 @@
-from src.skills.utils import get_tokens
+from src.skills.utils import get_tokens, lemmatize
 from src.skills.slot import Slot
+import re
+from datetime import datetime
+
+
+class DateParam:
+
+    def __init__(self, id: str, value: str):
+        self.id = id
+        self.value = value
+
+
+class LocationParam:
+
+    def __init__(self, id: str, value: str):
+        self.id = id
+        self.value = value
+
+
 
 class GetWeatherSkill:
 
@@ -22,7 +40,7 @@ class GetWeatherSkill:
         if query:
             return False, query
 
-        extracted_date, query = self.extract_date(tokens)
+        extracted_date, query = self.extract_date(text, tokens)
         if query:
             return False, query
             
@@ -48,20 +66,31 @@ class GetWeatherSkill:
         if not self._is_complete:
             raise Exception("Собраны не все параметры")
 
+        date = self.date_param_to_date(self.params[GetWeatherSkill.DATE])
+        location = self.params[GetWeatherSkill.LOCATION].value
+
         self._is_run = True
-        return f"Прогноз погоды для города {self.params[GetWeatherSkill.LOCATION]} на {self.params[GetWeatherSkill.DATE]}"
+        return f"Прогноз погоды для города {location} на {date}"
 
 
-    def extract_date(self, lemmas):
+    def extract_date(self, text: str, lemmas):
         if self.params.get(GetWeatherSkill.DATE):
             return True, None
 
         dates = set()
 
         for slot in self.slots[GetWeatherSkill.DATE].values():
-            intersection = lemmas & slot.aliases
-            if len(intersection) > 0:
-                dates.add(slot.id)
+            if slot.pattern:
+                matches = re.findall(slot.pattern, text.lower())
+                for match_value in matches:
+                    date_value = self.parse_date_match(match_value)
+                    if date_value:
+                        dates.add(DateParam(slot.id, date_value))
+
+            else:
+                intersection = lemmas & slot.aliases
+                if len(intersection) > 0:
+                    dates.add(DateParam(slot.id, slot.name))
 
         if len(dates) > 1:
             return False, 'Пожалуйста, укажите одну дату'
@@ -73,6 +102,46 @@ class GetWeatherSkill:
             return False, None
 
 
+    def parse_date_match(self, match_value):
+        values = match_value.split(' ')
+        day = int(values[0])
+        month = lemmatize(values[1].lower())
+
+        if not month or month not in GetWeatherSkillSlots.MONTHS.values():
+            return None
+
+        now = datetime.now()
+        current_month = now.month
+        year = now.year
+        month_id = GetWeatherSkillSlots.MONTHS_REVERSE[month]
+
+        if month_id < current_month:
+            year += 1
+
+        date = f'{year}/{month_id}/{day}'
+        print(date)
+        return date
+
+
+    def date_param_to_date(self, date_param: DateParam):
+        now = datetime.now()
+
+        if date_param.id == 'pattern':
+            return date_param.value
+
+        elif date_param.id == 'today':
+            return f'{now.year}/{now.month}/{now.day}'
+
+        elif date_param.id == 'today+1':
+            return f'{now.year}/{now.month}/{now.day+1}'
+
+        elif date_param.id == 'today+2':
+            return f'{now.year}/{now.month}/{now.day+2}'
+
+        else:
+            raise Exception(f'Unknown date id: {date_param.id}')
+
+
     def extract_location(self, lemmas):
         if self.params.get(GetWeatherSkill.LOCATION):
             return True, None
@@ -82,7 +151,7 @@ class GetWeatherSkill:
         for slot in self.slots[GetWeatherSkill.LOCATION].values():
             intersection = lemmas & slot.aliases
             if len(intersection) > 0:
-                locations.add(slot.id)
+                locations.add(LocationParam(slot.id, slot.name))
 
         if len(locations) > 1:
             return False, 'Пожалуйста, укажите один город'
@@ -111,6 +180,15 @@ class GetWeatherSkillSlots:
         },
         'date': {
             'today': Slot('today', 'сегодня', { "сегодня" }),
-            'tomorrow': Slot('tomorrow', 'завтра', { "завтра" }),
+            'today+1': Slot('today+1', 'завтра', { "завтра" }),
+            'today+2': Slot('today+2', 'послезавтра', { "послезавтра" }),
+            'pattern': Slot('pattern', '', {}, pattern=r'\d\d? [а-яА-Я]+')
         }
     }
+
+
+    MONTHS = { 1: 'январь', 2: 'февраль', 3: "март", 4: "апрель", 5: "май", 6: "июнь", 7: "июль", 8: "август", 9: "сентябрь", 10: "октябрь", 11: "ноябрь", 12: "декабрь" }
+    MONTHS_REVERSE = dict([(v, k) for k, v in MONTHS.items()])
+
+
+

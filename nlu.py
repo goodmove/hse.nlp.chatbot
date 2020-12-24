@@ -28,7 +28,11 @@ def main(text):
     print(skill.run())
     
 
+import re
 if __name__ == "__main__":
-    text = 'погода в питере'
-    main(text)
+    text = 'погода в питере 12 марта'
+    pattern = r'\d\d? [а-яА-Я]+'
+    matches = re.findall(pattern, text.lower())
+    print(matches)
+    # main(text)
     
